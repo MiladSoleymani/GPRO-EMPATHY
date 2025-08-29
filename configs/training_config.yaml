@@ -1,0 +1,47 @@
+# GPRO Empathy Training Configuration
+
+model:
+  name: "meta-llama/meta-Llama-3.1-8B-Instruct"
+  max_seq_length: 1024
+  lora_rank: 32
+  load_in_4bit: true
+  fast_inference: true
+  gpu_memory_utilization: 0.6
+
+training:
+  learning_rate: 5e-6
+  adam_beta1: 0.9
+  adam_beta2: 0.99
+  weight_decay: 0.1
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  optim: "paged_adamw_8bit"
+  logging_steps: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 1
+  num_generations: 6
+  max_steps: 250
+  save_steps: 250
+  max_grad_norm: 0.1
+  output_dir: "outputs"
+  max_prompt_length: 256
+
+inference:
+  temperature: 0.8
+  top_p: 0.95
+  max_tokens: 1024
+
+dataset:
+  name: "miladsolo/wassa-conv-turn-empathy"
+  # Add any dataset-specific configurations here
+
+rewards:
+  use_semantic_similarity: true
+  use_empathy_model: true
+  empathy_model_repo: "miladsolo/roberta-lora-wassa-empathy"
+  calibration_temperature: 0.6
+
+paths:
+  lora_save_path: "grpo_saved_lora"
+  checkpoint_dir: "checkpoints"
+  logs_dir: "logs"
