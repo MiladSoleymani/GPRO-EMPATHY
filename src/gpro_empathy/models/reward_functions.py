@@ -75,7 +75,7 @@ class SemanticSimilarityReward:
             "cross-encoder/stsb-roberta-large",
             device="cuda" if torch.cuda.is_available() else "cpu",
         )
-    
+
     def __call__(self, prompts, completions, **kwargs) -> list[float]:
         """
         Reward = calibrated semantic similarity between:
@@ -95,6 +95,7 @@ class SemanticSimilarityReward:
             r = (r or "").strip()
             pairs.append((s if s else "x", r if r else "x"))
 
+        print("SemanticSimilarityReward: ", pairs)
         try:
             raw = np.array(self._ce.predict(pairs, batch_size=64), dtype=float)
         except Exception:
@@ -115,10 +116,15 @@ class EmpathyModelReward:
         self._tok = AutoTokenizer.from_pretrained(model_repo)
         self._cls = AutoModelForSequenceClassification.from_pretrained(model_repo)
         self._cls.eval().to(self._device)
-    
+
     def predict(self, texts, max_len=256):
+        print("EmpathyModelReward: ", texts)
         enc = self._tok(
-            texts, padding=True, truncation=True, max_length=max_len, return_tensors="pt"
+            texts,
+            padding=True,
+            truncation=True,
+            max_length=max_len,
+            return_tensors="pt",
         )
         enc = {k: v.to(self._device) for k, v in enc.items()}
         with torch.no_grad():
@@ -132,7 +138,7 @@ class EmpathyModelReward:
             }
             for a in arr
         ]
-    
+
     def __call__(self, prompts=None, completions=None, **kwargs) -> list[float]:
         """
         Reward = model-predicted Empathy logit for the assistant's reply (higher is better).
