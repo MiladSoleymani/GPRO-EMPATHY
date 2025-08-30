@@ -95,7 +95,7 @@ class SemanticSimilarityReward:
             r = (r or "").strip()
             pairs.append((s if s else "x", r if r else "x"))
 
-        print("SemanticSimilarityReward: ", pairs)
+        # print("SemanticSimilarityReward: ", pairs)
         try:
             raw = np.array(self._ce.predict(pairs, batch_size=64), dtype=float)
         except Exception:
@@ -118,7 +118,7 @@ class EmpathyModelReward:
         self._cls.eval().to(self._device)
 
     def predict(self, texts, max_len=256):
-        print("EmpathyModelReward: ", texts)
+        # print("EmpathyModelReward: ", texts)
         enc = self._tok(
             texts,
             padding=True,
