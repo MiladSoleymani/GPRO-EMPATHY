@@ -26,22 +26,22 @@ class GPROEmpathyTrainer:
         # Initialize model and tokenizer
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             model_name=model_name,
-            max_seq_length=max_seq_length,
-            load_in_4bit=load_in_4bit,
-            fast_inference=fast_inference,
-            max_lora_rank=lora_rank,
-            gpu_memory_utilization=gpu_memory_utilization,
+            max_seq_length=int(max_seq_length),
+            load_in_4bit=bool(load_in_4bit),
+            fast_inference=bool(fast_inference),
+            max_lora_rank=int(lora_rank),
+            gpu_memory_utilization=float(gpu_memory_utilization),
         )
         
         # Apply LoRA
         self.model = FastLanguageModel.get_peft_model(
             self.model,
-            r=lora_rank,
+            r=int(lora_rank),
             target_modules=[
                 "q_proj", "k_proj", "v_proj", "o_proj",
                 "gate_proj", "up_proj", "down_proj",
             ],
-            lora_alpha=lora_rank,
+            lora_alpha=int(lora_rank),
             use_gradient_checkpointing="unsloth",
             random_state=3407,
         )
@@ -74,22 +74,22 @@ class GPROEmpathyTrainer:
             reward_funcs = [semantic_sts_reward, empathy_model_reward]
         
         training_args = GRPOConfig(
-            learning_rate=learning_rate,
-            adam_beta1=adam_beta1,
-            adam_beta2=adam_beta2,
-            weight_decay=weight_decay,
-            warmup_ratio=warmup_ratio,
+            learning_rate=float(learning_rate),
+            adam_beta1=float(adam_beta1),
+            adam_beta2=float(adam_beta2),
+            weight_decay=float(weight_decay),
+            warmup_ratio=float(warmup_ratio),
             lr_scheduler_type=lr_scheduler_type,
             optim=optim,
-            logging_steps=logging_steps,
-            per_device_train_batch_size=per_device_train_batch_size,
-            gradient_accumulation_steps=gradient_accumulation_steps,
-            num_generations=num_generations,
-            max_prompt_length=max_prompt_length,
-            max_completion_length=self.max_seq_length - max_prompt_length,
-            max_steps=max_steps,
-            save_steps=save_steps,
-            max_grad_norm=max_grad_norm,
+            logging_steps=int(logging_steps),
+            per_device_train_batch_size=int(per_device_train_batch_size),
+            gradient_accumulation_steps=int(gradient_accumulation_steps),
+            num_generations=int(num_generations),
+            max_prompt_length=int(max_prompt_length),
+            max_completion_length=self.max_seq_length - int(max_prompt_length),
+            max_steps=int(max_steps),
+            save_steps=int(save_steps),
+            max_grad_norm=float(max_grad_norm),
             report_to="none",
             output_dir=output_dir,
         )
