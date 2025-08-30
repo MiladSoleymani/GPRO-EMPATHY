@@ -26,33 +26,51 @@ def _extract_utterance_from_prompt(prompt_text: str) -> str:
 
 def _extract_answer_text(reply_text: str) -> str:
     """If XML is present, score only the <answer>…</answer> body."""
+    if reply_text:
+        print(f"🔍 Extracting answer from: {reply_text[:100]}...")
     ans = _extract_text_between(reply_text or "", _ANSWER_RE, fallback=reply_text or "")
-    return ans.strip()
+    extracted = ans.strip()
+    print(f"  → Extracted answer: {extracted[:50]}{'...' if len(extracted) > 50 else ''}")
+    return extracted
 
 
 def _flatten_completions(completions) -> list[str]:
     """Handle various TRL completion shapes and return list[str]."""
+    print(f"🔍 _flatten_completions called with {len(completions) if completions else 0} completions")
+    print(f"🔍 Completion types: {[type(c).__name__ for c in (completions or [])]}")
+    
     out = []
-    for c in completions or []:
+    for i, c in enumerate(completions or []):
         if isinstance(c, str):
+            print(f"  [{i}] String completion: {len(c)} chars")
             out.append(c)
         elif isinstance(c, dict) and "content" in c:
-            out.append(c["content"])
+            content = c["content"]
+            print(f"  [{i}] Dict completion: {len(content)} chars")
+            out.append(content)
         elif isinstance(c, (list, tuple)) and len(c) > 0:
             first = c[0]
             if isinstance(first, dict) and "content" in first:
-                out.append(first["content"])
+                content = first["content"]
+                print(f"  [{i}] Nested dict completion: {len(content)} chars")
+                out.append(content)
             elif (
                 isinstance(first, (list, tuple))
                 and len(first) > 0
                 and isinstance(first[0], dict)
                 and "content" in first[0]
             ):
-                out.append(first[0]["content"])
+                content = first[0]["content"]
+                print(f"  [{i}] Deep nested completion: {len(content)} chars")
+                out.append(content)
             else:
+                print(f"  [{i}] Converted to string: {str(c)[:50]}...")
                 out.append(str(c))
         else:
+            print(f"  [{i}] Empty/invalid completion, using empty string")
             out.append("")
+    
+    print(f"🎯 _flatten_completions returning {len(out)} strings")
     return out
 
 
@@ -83,11 +101,16 @@ class SemanticSimilarityReward:
           reply  = model's <answer> text (or full reply if no XML)
         Returns floats in [0,1].
         """
+        print(f"🔍 SemanticSimilarityReward processing {len(prompts)} prompts")
         user_msgs = [p[-1]["content"] for p in prompts]
         sources = [_extract_utterance_from_prompt(m) for m in user_msgs]
+        print(f"📝 Extracted {len(sources)} user sources")
 
+        print(f"🔍 Processing {len(completions) if completions else 0} completions")
         reply_texts = _flatten_completions(completions)
+        print(f"📝 Flattened to {len(reply_texts)} reply texts")
         replies = [_extract_answer_text(t) for t in reply_texts]
+        print(f"📝 Extracted {len(replies)} answer texts")
 
         pairs = []
         for s, r in zip(sources, replies):
@@ -151,9 +174,13 @@ class EmpathyModelReward:
         Reward = model-predicted Empathy logit for the assistant's reply (higher is better).
         Uses miladsolo/roberta-lora-wassa-empathy via `predict()`. Calibrated to [0,1].
         """
+        print(f"🔍 EmpathyModelReward processing {len(completions or [])} completions")
         reply_texts = _flatten_completions(completions or [])
+        print(f"📝 Flattened to {len(reply_texts)} reply texts")
         answers = [_extract_answer_text(t) for t in reply_texts]
+        print(f"📝 Extracted {len(answers)} answer texts")
         safe_inputs = [a if a else " " for a in answers]
+        print(f"📝 Created {len(safe_inputs)} safe inputs for empathy model")
 
         preds = self.predict(safe_inputs)
         raw = np.array([p.get("Empathy", 0.0) for p in preds], dtype=float)
