@@ -26,33 +26,33 @@ def _extract_utterance_from_prompt(prompt_text: str) -> str:
 
 def _extract_answer_text(reply_text: str) -> str:
     """If XML is present, score only the <answer>…</answer> body."""
-    if reply_text:
-        print(f"🔍 Extracting answer from: {reply_text[:100]}...")
+    # if reply_text:
+    #     print(f"🔍 Extracting answer from: {reply_text[:100]}...")
     ans = _extract_text_between(reply_text or "", _ANSWER_RE, fallback=reply_text or "")
     extracted = ans.strip()
-    print(f"  → Extracted answer: {extracted[:50]}{'...' if len(extracted) > 50 else ''}")
+    # print(f"  → Extracted answer: {extracted[:50]}{'...' if len(extracted) > 50 else ''}")
     return extracted
 
 
 def _flatten_completions(completions) -> list[str]:
     """Handle various TRL completion shapes and return list[str]."""
-    print(f"🔍 _flatten_completions called with {len(completions) if completions else 0} completions")
-    print(f"🔍 Completion types: {[type(c).__name__ for c in (completions or [])]}")
+    # print(f"🔍 _flatten_completions called with {len(completions) if completions else 0} completions")
+    # print(f"🔍 Completion types: {[type(c).__name__ for c in (completions or [])]}")
     
     out = []
     for i, c in enumerate(completions or []):
         if isinstance(c, str):
-            print(f"  [{i}] String completion: {len(c)} chars")
+            # print(f"  [{i}] String completion: {len(c)} chars")
             out.append(c)
         elif isinstance(c, dict) and "content" in c:
             content = c["content"]
-            print(f"  [{i}] Dict completion: {len(content)} chars")
+            # print(f"  [{i}] Dict completion: {len(content)} chars")
             out.append(content)
         elif isinstance(c, (list, tuple)) and len(c) > 0:
             first = c[0]
             if isinstance(first, dict) and "content" in first:
                 content = first["content"]
-                print(f"  [{i}] Nested dict completion: {len(content)} chars")
+                # print(f"  [{i}] Nested dict completion: {len(content)} chars")
                 out.append(content)
             elif (
                 isinstance(first, (list, tuple))
@@ -61,16 +61,16 @@ def _flatten_completions(completions) -> list[str]:
                 and "content" in first[0]
             ):
                 content = first[0]["content"]
-                print(f"  [{i}] Deep nested completion: {len(content)} chars")
+                # print(f"  [{i}] Deep nested completion: {len(content)} chars")
                 out.append(content)
             else:
-                print(f"  [{i}] Converted to string: {str(c)[:50]}...")
+                # print(f"  [{i}] Converted to string: {str(c)[:50]}...")
                 out.append(str(c))
         else:
-            print(f"  [{i}] Empty/invalid completion, using empty string")
+            # print(f"  [{i}] Empty/invalid completion, using empty string")
             out.append("")
     
-    print(f"🎯 _flatten_completions returning {len(out)} strings")
+    # print(f"🎯 _flatten_completions returning {len(out)} strings")
     return out
 
 
@@ -101,16 +101,16 @@ class SemanticSimilarityReward:
           reply  = model's <answer> text (or full reply if no XML)
         Returns floats in [0,1].
         """
-        print(f"🔍 SemanticSimilarityReward processing {len(prompts)} prompts")
+        # print(f"🔍 SemanticSimilarityReward processing {len(prompts)} prompts")
         user_msgs = [p[-1]["content"] for p in prompts]
         sources = [_extract_utterance_from_prompt(m) for m in user_msgs]
-        print(f"📝 Extracted {len(sources)} user sources")
+        # print(f"📝 Extracted {len(sources)} user sources")
 
-        print(f"🔍 Processing {len(completions) if completions else 0} completions")
+        # print(f"🔍 Processing {len(completions) if completions else 0} completions")
         reply_texts = _flatten_completions(completions)
-        print(f"📝 Flattened to {len(reply_texts)} reply texts")
+        # print(f"📝 Flattened to {len(reply_texts)} reply texts")
         replies = [_extract_answer_text(t) for t in reply_texts]
-        print(f"📝 Extracted {len(replies)} answer texts")
+        # print(f"📝 Extracted {len(replies)} answer texts")
 
         pairs = []
         for s, r in zip(sources, replies):
@@ -121,9 +121,9 @@ class SemanticSimilarityReward:
         # print("SemanticSimilarityReward: ", pairs)
         try:
             raw = np.array(self._ce.predict(pairs, batch_size=64), dtype=float)
-            print(f"✅ Semantic reward computed: {len(raw)} scores for {len(pairs)} pairs")
+            # print(f"✅ Semantic reward computed: {len(raw)} scores for {len(pairs)} pairs")
         except Exception as e:
-            print(f"⚠️ Semantic reward failed: {e}")
+            # print(f"⚠️ Semantic reward failed: {e}")
             raw = np.zeros(len(pairs), dtype=float)
 
         raw = np.nan_to_num(raw, nan=0.0, posinf=1.0, neginf=0.0)
@@ -156,9 +156,9 @@ class EmpathyModelReward:
             with torch.no_grad():
                 logits = self._cls(**enc).logits
             arr = logits.detach().cpu().numpy()
-            print(f"✅ Empathy reward computed: {len(arr)} scores for {len(texts)} texts")
+            # print(f"✅ Empathy reward computed: {len(arr)} scores for {len(texts)} texts")
         except Exception as e:
-            print(f"⚠️ Empathy reward failed: {e}")
+            # print(f"⚠️ Empathy reward failed: {e}")
             arr = np.zeros((len(texts), 3), dtype=float)
         return [
             {
@@ -174,13 +174,13 @@ class EmpathyModelReward:
         Reward = model-predicted Empathy logit for the assistant's reply (higher is better).
         Uses miladsolo/roberta-lora-wassa-empathy via `predict()`. Calibrated to [0,1].
         """
-        print(f"🔍 EmpathyModelReward processing {len(completions or [])} completions")
+        # print(f"🔍 EmpathyModelReward processing {len(completions or [])} completions")
         reply_texts = _flatten_completions(completions or [])
-        print(f"📝 Flattened to {len(reply_texts)} reply texts")
+        # print(f"📝 Flattened to {len(reply_texts)} reply texts")
         answers = [_extract_answer_text(t) for t in reply_texts]
-        print(f"📝 Extracted {len(answers)} answer texts")
+        # print(f"📝 Extracted {len(answers)} answer texts")
         safe_inputs = [a if a else " " for a in answers]
-        print(f"📝 Created {len(safe_inputs)} safe inputs for empathy model")
+        # print(f"📝 Created {len(safe_inputs)} safe inputs for empathy model")
 
         preds = self.predict(safe_inputs)
         raw = np.array([p.get("Empathy", 0.0) for p in preds], dtype=float)
@@ -191,17 +191,17 @@ class EmpathyModelReward:
 
 def semantic_sts_reward(prompts, completions, **kwargs) -> list[float]:
     """Convenience function for semantic similarity reward."""
-    print(f"🔍 Semantic reward called with {len(prompts)} prompts, {len(completions)} completions")
+    # print(f"🔍 Semantic reward called with {len(prompts)} prompts, {len(completions)} completions")
     reward_fn = SemanticSimilarityReward()
     results = reward_fn(prompts, completions, **kwargs)
-    print(f"🎯 Semantic reward returned {len(results)} scores")
+    # print(f"🎯 Semantic reward returned {len(results)} scores")
     return results
 
 
 def empathy_model_reward(prompts=None, completions=None, **kwargs) -> list[float]:
     """Convenience function for empathy model reward."""
-    print(f"🔍 Empathy reward called with {len(prompts or [])} prompts, {len(completions or [])} completions")
+    # print(f"🔍 Empathy reward called with {len(prompts or [])} prompts, {len(completions or [])} completions")
     reward_fn = EmpathyModelReward()
     results = reward_fn(prompts, completions, **kwargs)
-    print(f"💝 Empathy reward returned {len(results)} scores")
+    # print(f"💝 Empathy reward returned {len(results)} scores")
     return results
