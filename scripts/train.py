@@ -110,12 +110,22 @@ def main():
     # Test inference
     print("\n=== Testing Inference ===")
     
-    # Create test prompts
+    # Import the system prompt to test proper empathy reasoning
+    from gpro_empathy.data.dataset_loader import get_system_prompt
+    
+    # Create test prompts with system prompt (like in training)
+    test_message = "I'm feeling really overwhelmed with work lately."
     test_prompt = trainer.tokenizer.apply_chat_template(
-        [{"role": "user", "content": "I'm feeling really overwhelmed with work lately."}],
+        [
+            {"role": "system", "content": get_system_prompt()},
+            {"role": "user", "content": f"Here is the dialogue so far. Continue as <|assistant|>.\n\n<|user|>\n{test_message}\n</s>\n"}
+        ],
         tokenize=False,
         add_generation_prompt=True,
     )
+    
+    print(f"Test Input: '{test_message}'")
+    print("Expected: Model should analyze emotion and generate reasoning + empathetic response")
     
     # Generate without LoRA
     print("Generating without LoRA:")

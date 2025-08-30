@@ -1,4 +1,5 @@
 import torch
+import unsloth
 from unsloth import FastLanguageModel
 from trl import GRPOConfig, GRPOTrainer
 from typing import List, Callable, Dict, Any, Optional
@@ -9,7 +10,7 @@ from ..models.reward_functions import semantic_sts_reward, empathy_model_reward
 
 class GPROEmpathyTrainer:
     """GRPO trainer for empathy-based language model training."""
-    
+
     def __init__(
         self,
         model_name: str = "meta-llama/meta-Llama-3.1-8B-Instruct",
@@ -22,7 +23,7 @@ class GPROEmpathyTrainer:
         self.model_name = model_name
         self.max_seq_length = max_seq_length
         self.lora_rank = lora_rank
-        
+
         # Initialize model and tokenizer
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             model_name=model_name,
@@ -32,22 +33,27 @@ class GPROEmpathyTrainer:
             max_lora_rank=int(lora_rank),
             gpu_memory_utilization=float(gpu_memory_utilization),
         )
-        
+
         # Apply LoRA
         self.model = FastLanguageModel.get_peft_model(
             self.model,
             r=int(lora_rank),
             target_modules=[
-                "q_proj", "k_proj", "v_proj", "o_proj",
-                "gate_proj", "up_proj", "down_proj",
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
             ],
             lora_alpha=int(lora_rank),
             use_gradient_checkpointing="unsloth",
             random_state=3407,
         )
-        
+
         self.trainer = None
-    
+
     def setup_training(
         self,
         learning_rate: float = 5e-6,
@@ -69,10 +75,10 @@ class GPROEmpathyTrainer:
         max_prompt_length: int = 256,
     ):
         """Setup GRPO training configuration."""
-        
+
         if reward_funcs is None:
             reward_funcs = [semantic_sts_reward, empathy_model_reward]
-        
+
         training_args = GRPOConfig(
             learning_rate=float(learning_rate),
             adam_beta1=float(adam_beta1),
@@ -93,10 +99,10 @@ class GPROEmpathyTrainer:
             report_to="none",
             output_dir=output_dir,
         )
-        
+
         # Load dataset
         dataset = load_wassa_empathy()
-        
+
         self.trainer = GRPOTrainer(
             model=self.model,
             processing_class=self.tokenizer,
@@ -104,22 +110,22 @@ class GPROEmpathyTrainer:
             args=training_args,
             train_dataset=dataset,
         )
-    
+
     def train(self):
         """Start training."""
         if self.trainer is None:
             raise ValueError("Training not setup. Call setup_training() first.")
-        
+
         return self.trainer.train()
-    
+
     def save_lora(self, path: str):
         """Save LoRA adapter."""
         self.model.save_lora(path)
-    
+
     def load_lora(self, path: str):
         """Load LoRA adapter for inference."""
         return self.model.load_lora(path)
-    
+
     def generate_sample(
         self,
         prompt: str,
@@ -130,17 +136,21 @@ class GPROEmpathyTrainer:
     ) -> str:
         """Generate a sample using the trained model."""
         from vllm import SamplingParams
-        
+
         sampling_params = SamplingParams(
             temperature=temperature,
             top_p=top_p,
             max_tokens=max_tokens,
         )
-        
-        output = self.model.fast_generate(
-            [prompt],
-            sampling_params=sampling_params,
-            lora_request=lora_request,
-        )[0].outputs[0].text
-        
+
+        output = (
+            self.model.fast_generate(
+                [prompt],
+                sampling_params=sampling_params,
+                lora_request=lora_request,
+            )[0]
+            .outputs[0]
+            .text
+        )
+
         return output

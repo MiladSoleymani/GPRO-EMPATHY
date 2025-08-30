@@ -53,7 +53,6 @@ def show_training_preview(config):
     
     # Extract prompts for generation
     prompts = []
-    expected_answers = []
     
     for i, sample in enumerate(samples):
         prompt = trainer.tokenizer.apply_chat_template(
@@ -62,7 +61,6 @@ def show_training_preview(config):
             add_generation_prompt=True,
         )
         prompts.append(prompt)
-        expected_answers.append(sample["answer"])
         
         print(f"\n--- Sample {i+1} ---")
         print("🎯 Input (User Message):")
@@ -70,7 +68,7 @@ def show_training_preview(config):
         # Extract just the user utterance for cleaner display
         user_msg = user_content.split("<|user|>")[-1].split("</s>")[0].strip()
         print(f"   {user_msg}")
-        print(f"📊 Expected Empathy Level: {sample['answer']}")
+        print("🤖 Model Task: Generate reasoning + empathetic response")
     
     # Generate responses
     print("\n🤖 Generating model responses...")
@@ -113,6 +111,10 @@ def show_training_preview(config):
             # Display scores
             print("\n=== REWARD SCORES ===")
             for i in range(len(samples)):
+                sample = samples[i]
+                user_content = sample["prompt"][-1]["content"]
+                user_msg = user_content.split("<|user|>")[-1].split("</s>")[0].strip()
+                
                 print(f"\n--- Sample {i+1} Scores ---")
                 print(f"🎯 Input: {user_msg}")
                 print(f"🤖 Response: {completions[i][:100]}{'...' if len(completions[i]) > 100 else ''}")
