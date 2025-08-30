@@ -1,62 +1,34 @@
-from typing import Optional, Sequence
-from datasets import load_dataset, Dataset, DatasetDict, concatenate_datasets
+from typing import Optional
+from datasets import load_dataset, Dataset
 
 
 SYSTEM_PROMPT = """
 <|system|>
-You are a friendly, trauma-informed assistant. You receive prior dialogue turns marked with <|user|> and <|assistant|>.
-Continue the conversation as <|assistant|> with an empathetic, concise reply that:
-- reflects the user's experience in new words,
-- validates feelings,
-- optionally asks ONE gentle, forward-moving question,
-- stays within 1–2 sentences,
-- avoids emojis, lists, quotes, and clinical/lecturing tone,
-- maintains continuity and never repeats the prompt.
+You are a friendly, trauma-informed assistant. Analyze the user's message carefully for emotional content, intensity, and empathy needs.
 
-Output EXACTLY this XML wrapper:
+When responding:
+1. First, analyze what the user is expressing (concern, emotion, intensity level 0-5)
+2. Then provide an empathetic response that matches their emotional needs
+3. Your response should reflect their experience, validate feelings, and optionally ask ONE gentle question
+4. Keep responses to 1-2 sentences, avoid emojis, lists, quotes, or clinical tone
+
+Output EXACTLY this XML format:
 
 <reasoning>
-- Briefly identify the user's main concern.
-- Name the likely emotion and a rough 0–5 intensity.
-- Plan one supportive move (reflection / validation / next step).
+- User's main concern: [identify what they're expressing]
+- Emotional content: [what emotions/feelings are present]
+- Intensity level: [0=neutral, 1-2=mild, 3-4=moderate, 5=high emotional intensity]
+- Response approach: [how to respond empathetically]
 </reasoning>
 <answer>
-(Your final 1–2 sentence reply here.)
+[Your empathetic response here - 1-2 sentences maximum]
 </answer>
 </s>
 """.strip()
 
 
-_TEXT_COL_CANDIDATES = [
-    "utterance",
-    "Utterance",
-    "text",
-    "Text",
-    "content",
-    "message",
-    "sentence",
-    "prompt",
-]
-
-
-def _pick_text_col(cols: Sequence[str]) -> str:
-    for c in _TEXT_COL_CANDIDATES:
-        if c in cols:
-            return c
-    return cols[0]
-
-
-def _to_int_0_5(x) -> Optional[int]:
-    try:
-        v = float(x)
-    except Exception:
-        return None
-    v = round(v)
-    v = max(0, min(5, int(v)))
-    return v
-
-
 def _mk_instruction(utterance: str) -> str:
+    """Format user text into Llama chat template structure."""
     return (
         "Here is the dialogue so far. Continue as <|assistant|>.\n\n"
         f"<|user|>\n{utterance}\n</s>\n"
@@ -64,54 +36,54 @@ def _mk_instruction(utterance: str) -> str:
 
 
 def load_wassa_empathy(split: Optional[str] = None) -> Dataset:
-    """Load and format WASSA empathy dataset for GPRO training."""
-    raw = (
-        load_dataset("miladsolo/wassa-conv-turn-empathy")
-        if split is None
-        else load_dataset("miladsolo/wassa-conv-turn-empathy", split=split)
-    )
-    ds = (
-        concatenate_datasets([raw[k] for k in raw.keys()])
-        if isinstance(raw, DatasetDict)
-        else raw
-    )
-
-    cols = ds.column_names
-    text_col = _pick_text_col(cols)
+    """
+    Load and format WASSA empathy dataset for GRPO training.
+    
+    From your RoBERTa notebook, we know the dataset has:
+    - "text" field: contains the user utterances
+    - Other fields we don't need for GRPO (Emotion, EmotionalPolarity, Empathy)
+    
+    For GRPO: We only need prompts, model generates responses, reward functions score them.
+    """
+    # Load dataset - use train split by default
+    if split is None:
+        ds = load_dataset("miladsolo/wassa-conv-turn-empathy", split="train")
+    else:
+        ds = load_dataset("miladsolo/wassa-conv-turn-empathy", split=split)
 
     def _map(ex):
-        text = (ex.get(text_col) or "").strip()
+        # Get text from "text" field (confirmed from RoBERTa notebook)
+        text = (ex.get("text") or "").strip()
         if not text:
-            return {"prompt": None, "answer": None}
-        y = _to_int_0_5(ex.get("Empathy", None))
-        if y is None:
-            return {"prompt": None, "answer": None}
+            return {"prompt": None}
+            
+        # Format user message for Llama chat template
         user_msg = _mk_instruction(text)
+        
         return {
             "prompt": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_msg},
             ],
-            "answer": str(y),
         }
 
-    ds = ds.map(
-        _map, remove_columns=[c for c in cols if c not in (text_col, "Empathy")]
-    )
-    ds = ds.filter(
-        lambda ex: isinstance(ex["prompt"], list)
-        and isinstance(ex["answer"], str)
-        and len(ex["answer"]) > 0
-    )
+    # Apply mapping and filter out invalid entries
+    ds = ds.map(_map)
+    ds = ds.filter(lambda ex: ex["prompt"] is not None)
 
-    print(f"Prepared {len(ds)} WASSA empathy examples.")
+    print(f"✅ Prepared {len(ds)} WASSA empathy examples for GRPO training.")
+    print("📝 Dataset structure: Each example contains prompt for model to generate empathetic response")
+    print("🏆 Reward functions will score generated responses for empathy quality")
 
     # Quick preview
     for i in range(min(3, len(ds))):
         ex = ds[i]
-        print(f"\n--- sample {i} ---")
-        print("Q:", ex["prompt"][-1]["content"][:300])
-        print("A:", ex["answer"])
+        print(f"\n--- Sample {i} ---")
+        user_content = ex["prompt"][-1]["content"]
+        # Extract just the user message for cleaner display  
+        user_text = user_content.split("<|user|>")[-1].split("</s>")[0].strip()
+        print(f"📱 User Input: '{user_text}'")
+        print("🤖 Model Task: Analyze emotion → Generate reasoning + empathetic response")
 
     return ds
 
