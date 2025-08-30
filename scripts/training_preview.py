@@ -75,7 +75,7 @@ def show_training_preview(config):
     sampling_params = SamplingParams(
         temperature=config.get('inference', {}).get('temperature', 0.8),
         top_p=config.get('inference', {}).get('top_p', 0.95),
-        max_tokens=config['training'].get('max_prompt_length', 256),
+        max_tokens=512,  # Enough for reasoning + answer sections
     )
     
     try:
