@@ -96,7 +96,7 @@ class GPROEmpathyTrainer:
             max_steps=int(max_steps),
             save_steps=int(save_steps),
             max_grad_norm=float(max_grad_norm),
-            report_to="none",
+            report_to="tensorboard",
             output_dir=output_dir,
         )
 

@@ -9,7 +9,7 @@ model:
   gpu_memory_utilization: 0.6
 
 training:
-  learning_rate: 5e-6
+  learning_rate: 1e-3
   adam_beta1: 0.9
   adam_beta2: 0.99
   weight_decay: 0.1
@@ -24,7 +24,7 @@ training:
   save_steps: 250
   max_grad_norm: 0.1
   output_dir: "outputs"
-  max_prompt_length: 256
+  max_prompt_length: 512
 
 inference:
   temperature: 0.8

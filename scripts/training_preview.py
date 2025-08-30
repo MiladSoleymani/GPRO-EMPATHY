@@ -79,7 +79,7 @@ def show_training_preview(config):
     sampling_params = SamplingParams(
         temperature=config.get("inference", {}).get("temperature", 0.8),
         top_p=config.get("inference", {}).get("top_p", 0.95),
-        max_tokens=512,  # Enough for reasoning + answer sections
+        max_tokens=1024,  # Enough for reasoning + answer sections
     )
 
     try:
@@ -122,7 +122,7 @@ def show_training_preview(config):
                 print(f"\n--- Sample {i+1} Scores ---")
                 print(f"🎯 Input: {user_msg}")
                 print(
-                    f"🤖 Response: {completions[i][:100]}{'...' if len(completions[i]) > 100 else ''}"
+                    f"🤖 Response: {completions[i]}{'...' if len(completions[i]) > 100 else ''}"
                 )
                 print(f"📐 Semantic Similarity: {semantic_scores[i]:.4f}")
                 print(f"💝 Empathy Score: {empathy_scores[i]:.4f}")

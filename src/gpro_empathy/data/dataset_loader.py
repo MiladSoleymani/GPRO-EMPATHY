@@ -10,7 +10,7 @@ When responding:
 1. First, analyze what the user is expressing (concern, emotion, intensity level 0-5)
 2. Then provide an empathetic response that matches their emotional needs
 3. Your response should reflect their experience, validate feelings, and optionally ask ONE gentle question
-4. Keep responses to 1-2 sentences, avoid emojis, lists, quotes, or clinical tone
+4. Keep responses to 1-2 sentences, lists, quotes, or clinical tone
 
 Output EXACTLY this XML format:
 
@@ -38,11 +38,11 @@ def _mk_instruction(utterance: str) -> str:
 def load_wassa_empathy(split: Optional[str] = None) -> Dataset:
     """
     Load and format WASSA empathy dataset for GRPO training.
-    
+
     From your RoBERTa notebook, we know the dataset has:
     - "text" field: contains the user utterances
     - Other fields we don't need for GRPO (Emotion, EmotionalPolarity, Empathy)
-    
+
     For GRPO: We only need prompts, model generates responses, reward functions score them.
     """
     # Load dataset - use train split by default
@@ -56,10 +56,10 @@ def load_wassa_empathy(split: Optional[str] = None) -> Dataset:
         text = (ex.get("text") or "").strip()
         if not text:
             return {"prompt": None}
-            
+
         # Format user message for Llama chat template
         user_msg = _mk_instruction(text)
-        
+
         return {
             "prompt": [
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -72,7 +72,9 @@ def load_wassa_empathy(split: Optional[str] = None) -> Dataset:
     ds = ds.filter(lambda ex: ex["prompt"] is not None)
 
     print(f"✅ Prepared {len(ds)} WASSA empathy examples for GRPO training.")
-    print("📝 Dataset structure: Each example contains prompt for model to generate empathetic response")
+    print(
+        "📝 Dataset structure: Each example contains prompt for model to generate empathetic response"
+    )
     print("🏆 Reward functions will score generated responses for empathy quality")
 
     # Quick preview
@@ -80,10 +82,12 @@ def load_wassa_empathy(split: Optional[str] = None) -> Dataset:
         ex = ds[i]
         print(f"\n--- Sample {i} ---")
         user_content = ex["prompt"][-1]["content"]
-        # Extract just the user message for cleaner display  
+        # Extract just the user message for cleaner display
         user_text = user_content.split("<|user|>")[-1].split("</s>")[0].strip()
         print(f"📱 User Input: '{user_text}'")
-        print("🤖 Model Task: Analyze emotion → Generate reasoning + empathetic response")
+        print(
+            "🤖 Model Task: Analyze emotion → Generate reasoning + empathetic response"
+        )
 
     return ds
 
