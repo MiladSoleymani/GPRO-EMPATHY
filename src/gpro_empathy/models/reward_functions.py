@@ -98,7 +98,9 @@ class SemanticSimilarityReward:
         # print("SemanticSimilarityReward: ", pairs)
         try:
             raw = np.array(self._ce.predict(pairs, batch_size=64), dtype=float)
-        except Exception:
+            print(f"✅ Semantic reward computed: {len(raw)} scores for {len(pairs)} pairs")
+        except Exception as e:
+            print(f"⚠️ Semantic reward failed: {e}")
             raw = np.zeros(len(pairs), dtype=float)
 
         raw = np.nan_to_num(raw, nan=0.0, posinf=1.0, neginf=0.0)
@@ -119,17 +121,22 @@ class EmpathyModelReward:
 
     def predict(self, texts, max_len=256):
         # print("EmpathyModelReward: ", texts)
-        enc = self._tok(
-            texts,
-            padding=True,
-            truncation=True,
-            max_length=max_len,
-            return_tensors="pt",
-        )
-        enc = {k: v.to(self._device) for k, v in enc.items()}
-        with torch.no_grad():
-            logits = self._cls(**enc).logits
-        arr = logits.detach().cpu().numpy()
+        try:
+            enc = self._tok(
+                texts,
+                padding=True,
+                truncation=True,
+                max_length=max_len,
+                return_tensors="pt",
+            )
+            enc = {k: v.to(self._device) for k, v in enc.items()}
+            with torch.no_grad():
+                logits = self._cls(**enc).logits
+            arr = logits.detach().cpu().numpy()
+            print(f"✅ Empathy reward computed: {len(arr)} scores for {len(texts)} texts")
+        except Exception as e:
+            print(f"⚠️ Empathy reward failed: {e}")
+            arr = np.zeros((len(texts), 3), dtype=float)
         return [
             {
                 "Emotion": float(a[0]),
@@ -157,11 +164,17 @@ class EmpathyModelReward:
 
 def semantic_sts_reward(prompts, completions, **kwargs) -> list[float]:
     """Convenience function for semantic similarity reward."""
+    print(f"🔍 Semantic reward called with {len(prompts)} prompts, {len(completions)} completions")
     reward_fn = SemanticSimilarityReward()
-    return reward_fn(prompts, completions, **kwargs)
+    results = reward_fn(prompts, completions, **kwargs)
+    print(f"🎯 Semantic reward returned {len(results)} scores")
+    return results
 
 
 def empathy_model_reward(prompts=None, completions=None, **kwargs) -> list[float]:
     """Convenience function for empathy model reward."""
+    print(f"🔍 Empathy reward called with {len(prompts or [])} prompts, {len(completions or [])} completions")
     reward_fn = EmpathyModelReward()
-    return reward_fn(prompts, completions, **kwargs)
+    results = reward_fn(prompts, completions, **kwargs)
+    print(f"💝 Empathy reward returned {len(results)} scores")
+    return results
