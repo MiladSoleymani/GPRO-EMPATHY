@@ -8,16 +8,6 @@ This project implements GRPO training for developing more empathetic conversatio
 
 - **Semantic Similarity Reward**: Measures how well the model response aligns with user input
 - **Empathy Model Reward**: Uses a fine-tuned RoBERTa model to evaluate empathy levels
-- **WASSA Empathy Dataset**: Training data from conversation turns labeled for empathy
-
-## Features
-
-- 🤖 **GRPO Training**: Efficient training using Group Relative Policy Optimization
-- 💝 **Empathy Rewards**: Specialized reward functions for empathetic responses  
-- 🎯 **LoRA Fine-tuning**: Memory-efficient training with Low-Rank Adaptation
-- 🚀 **vLLM Inference**: Fast inference with vLLM backend
-- ⚙️ **Configurable**: YAML-based configuration system
-- 📊 **Interactive Inference**: Chat interface for testing trained models
 
 ## Project Structure
 
@@ -91,13 +81,6 @@ Edit `configs/training_config.yaml` to customize:
 - Reward function settings
 - Inference parameters
 
-## Dataset
-
-Uses the `miladsolo/wassa-conv-turn-empathy` dataset, which contains:
-- Conversation turns with empathy labels (0-5 scale)  
-- System prompt for XML-formatted empathetic responses
-- Automatic data preprocessing and filtering
-
 ## Reward Functions
 
 ### Semantic Similarity Reward
@@ -132,39 +115,6 @@ I hear how overwhelming work has been feeling for you lately - that kind of stre
 </answer>
 ```
 
-## Advanced Usage
-
-### Custom Reward Functions
-
-Add your own reward functions in `src/gpro_empathy/models/reward_functions.py`:
-
-```python
-def my_custom_reward(prompts, completions, **kwargs) -> list[float]:
-    # Your reward logic here
-    return [score for completion in completions]
-```
-
-### Batch Inference
-
-```python
-from gpro_empathy.utils.inference import EmpathyInference
-
-inference = EmpathyInference(
-    config_path="configs/training_config.yaml",
-    lora_path="grpo_saved_lora"
-)
-
-messages = ["I'm sad", "I'm excited", "I'm confused"]
-responses = inference.batch_generate(messages)
-```
-
-## Requirements
-
-- Python 3.8+
-- CUDA-capable GPU (recommended)
-- 16GB+ GPU memory for training
-- unsloth, vLLM, transformers, TRL
-
 ## Contributing
 
 1. Fork the repository
@@ -184,7 +134,7 @@ If you use this work, please cite:
 ```bibtex
 @misc{gpro-empathy,
   title={GPRO Empathy: Group Relative Policy Optimization for Empathy Training},
-  author={Your Name},
+  author={Milad Soleymani},
   year={2024},
   url={https://github.com/yourusername/gpro-empathy}
 }
