@@ -102,9 +102,9 @@ Edit `configs/training_config.yaml` to customize:
 
 ## Output Format
 
-The model generates responses in XML format:
+The model generates responses in this format:
 
-```xml
+```
 <reasoning>
 - User is expressing work stress and overwhelm
 - Emotion: anxiety/stress, intensity: 3-4  
