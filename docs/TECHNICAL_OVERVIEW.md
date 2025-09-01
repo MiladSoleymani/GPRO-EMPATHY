@@ -55,14 +55,14 @@ Calibration: Temperature scaling (T=0.6)
 ```python
 Model: miladsolo/roberta-lora-wassa-empathy
 Input: model_answer_text
-Output: [0,1] empathy score
-Processing: 3-class logits → empathy dimension
+Output: Empathy, Emotion, and Polarity score
+Processing: [0,3] logits → empathy dimension
 ```
 
 ## Implementation Details
 
-### XML Response Structure
-```xml
+### Response Structure
+```
 <reasoning>
 - User's main concern: [analysis]
 - Emotional content: [emotions identified]
@@ -93,7 +93,6 @@ Processing: 3-class logits → empathy dimension
 - GPU Memory: ~60% utilization on single GPU
 - Training Speed: ~55s per step (3 generations)
 - Model Size: 8B parameters with 32-rank LoRA adaptation
-- Convergence: 250 training steps
 
 ### Response Quality
 - Contextual relevance through semantic similarity
@@ -126,15 +125,5 @@ response = inference.generate_empathetic_response(user_message)
 ### Training Metrics
 - Reward scores per generation
 - Loss convergence tracking
-- Generation quality assessment
-- Memory usage monitoring
-
-### Debug Capabilities
-- Completion pipeline tracking
-- Reward function introspection
-- XML parsing validation
-- Answer extraction verification
 
 ---
-
-This technical overview provides implementation details for developers working with the GPRO-EMPATHY system.
